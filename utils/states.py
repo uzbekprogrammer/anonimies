@@ -18,6 +18,8 @@ class CorruptionStates(StatesGroup):
 class ReceptionStates(StatesGroup):
     """Direktor qabuliga yozilish bo'limi uchun holatlar."""
     waiting_fullname = State()
+    waiting_position = State()
+    waiting_department = State()
     waiting_phone = State()
     choosing_date = State()
     choosing_time = State()

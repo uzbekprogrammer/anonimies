@@ -2,17 +2,22 @@ from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from config import DIRECTOR_ID, LAWYER_ID, SUPERADMIN_IDS
+from config import DIRECTOR_ID, LAWYER_ID
 from database.models import create_appeal, create_user, get_user
 from keyboards.inline import appeal_admin_kb
 from keyboards.reply import cancel_kb, main_menu_kb, phone_request_kb
+from utils.notifications import notify_superadmins
 from utils.states import PersonalStates
+from utils.warnings_text import WARNING_RU, WARNING_UZ
 
 router = Router()
 
 
 @router.message(F.text == "👤 Shaxsiy masala bo'yicha murojaat")
 async def start_personal(message: Message, state: FSMContext):
+    await message.answer(WARNING_UZ)
+    await message.answer(WARNING_RU)
+
     user = await get_user(message.from_user.id)
     if user:
         await state.set_state(PersonalStates.waiting_appeal_text)
@@ -118,9 +123,8 @@ async def receive_personal_appeal(message: Message, state: FSMContext):
         f"Matn: {text or '(matn kiritilmagan)'}"
     )
 
-    # Shaxsiy masalalar bo'yicha: superadmin + direktor + yurist ko'radi
-    recipients = set(SUPERADMIN_IDS) | {DIRECTOR_ID, LAWYER_ID}
-    for admin_id in recipients:
+    # To'liq murojaat (matn/fayl + javob tugmasi) faqat direktor va yuristga boradi
+    for admin_id in (DIRECTOR_ID, LAWYER_ID):
         try:
             if file_id and file_type == "photo":
                 await message.bot.send_photo(admin_id, file_id, caption=admin_text)
@@ -135,3 +139,11 @@ async def receive_personal_appeal(message: Message, state: FSMContext):
             )
         except Exception:
             pass
+
+    # Superadminga esa faqat qisqa ma'lumot xabari boradi (to'liq matn/fayl emas)
+    await notify_superadmins(
+        message.bot,
+        f"ℹ️ Yangi shaxsiy murojaat #{appeal_id} keldi.\n"
+        f"Yuboruvchi: {user['full_name']} ({user['position']}, {user['department']})\n"
+        "To'liq matn direktor va yuristga yuborildi.",
+    )

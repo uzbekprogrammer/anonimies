@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery, Message
 from database.models import get_all_users, get_appeal, answer_appeal
 from keyboards.inline import confirm_broadcast_kb
 from utils.notifications import notify_superadmins
-from utils.roles import is_admin, is_director, is_lawyer, is_superadmin
+from utils.roles import is_admin, is_director, is_lawyer
 from utils.states import AdminStates
 
 router = Router()
@@ -23,12 +23,10 @@ async def start_answer(callback: CallbackQuery, state: FSMContext):
         return
 
     user_id = callback.from_user.id
-    if appeal["appeal_type"] == "corruption" and not is_superadmin(user_id):
-        await callback.answer("Bu murojaatga faqat superadmin javob bera oladi.", show_alert=True)
+    if appeal["appeal_type"] == "corruption" and not (is_director(user_id) or is_lawyer(user_id)):
+        await callback.answer("Bu murojaatga faqat korxona rahbari yoki yurist javob bera oladi.", show_alert=True)
         return
-    if appeal["appeal_type"] == "personal" and not (
-        is_superadmin(user_id) or is_director(user_id) or is_lawyer(user_id)
-    ):
+    if appeal["appeal_type"] == "personal" and not (is_director(user_id) or is_lawyer(user_id)):
         await callback.answer("Sizda bu murojaatga javob berish huquqi yo'q.", show_alert=True)
         return
 

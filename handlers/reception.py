@@ -37,6 +37,20 @@ async def start_reception(message: Message, state: FSMContext):
 @router.message(ReceptionStates.waiting_fullname)
 async def get_fullname(message: Message, state: FSMContext):
     await state.update_data(full_name=message.text)
+    await state.set_state(ReceptionStates.waiting_position)
+    await message.answer("Lavozimingizni kiriting:")
+
+
+@router.message(ReceptionStates.waiting_position)
+async def get_position(message: Message, state: FSMContext):
+    await state.update_data(position=message.text)
+    await state.set_state(ReceptionStates.waiting_department)
+    await message.answer("Bo'lim / sexingizni kiriting:")
+
+
+@router.message(ReceptionStates.waiting_department)
+async def get_department(message: Message, state: FSMContext):
+    await state.update_data(department=message.text)
     await state.set_state(ReceptionStates.waiting_phone)
     await message.answer(
         "Telefon raqamingizni tasdiqlash uchun tugmani bosing:",
@@ -55,8 +69,8 @@ async def get_phone(message: Message, state: FSMContext):
         telegram_id=message.from_user.id,
         username=message.from_user.username,
         full_name=data["full_name"],
-        position="-",
-        department="-",
+        position=data["position"],
+        department=data["department"],
         phone=message.contact.phone_number,
     )
     await state.update_data(phone=message.contact.phone_number)
@@ -94,7 +108,7 @@ async def choose_date(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(ReceptionStates.choosing_time, F.data.startswith("time:"))
 async def choose_time(callback: CallbackQuery, state: FSMContext):
-    _, date_str, time_str = callback.data.split(":")
+    _, date_str, time_str = callback.data.split(":", 2)
     await state.update_data(time=time_str)
     await state.set_state(ReceptionStates.waiting_reason)
 
